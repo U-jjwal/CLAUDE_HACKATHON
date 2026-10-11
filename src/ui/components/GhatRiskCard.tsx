@@ -5,6 +5,8 @@ import type { GhatCoverage } from '../../core/coverage';
 import type { Reading } from '../../core/types';
 import { cite } from '../../core/clean';
 import { displayReading } from '../readingDisplay';
+import { useLanguage } from '../i18n';
+import type { TranslationKeys } from '../i18n/en';
 
 interface GhatRiskCardProps {
   stability: Stability;
@@ -14,20 +16,6 @@ interface GhatRiskCardProps {
   onOpenEvidence: (ghat: string, triggerBtn: HTMLElement) => void;
 }
 
-const TAG_EXPLANATIONS: Record<string, string> = {
-  recurring_baseline: 'Pre-immersion hypoxia: DO < 5 mg/L before idols arrive in 2+ events',
-  immersion_triggered: 'Direct immersion shock: passed before, failed during immersion',
-  slow_recovery: 'Delayed oxygen recovery: still below 5 mg/L a week after immersion in 2+ events',
-  organic_load_spike: 'Organic shock: BOD rises ≥ 2.0 mg/L during immersion',
-  data_gap: 'Incomplete historical record (missing entire event or critical parameters)',
-};
-
-const TIER_DESCRIPTIONS = {
-  A: 'Act First: Persistent baseline hypoxia or severe immersion degradation',
-  B: 'Close Group: Indistinguishable intermediate risk; order within tier is not reliable',
-  C: 'Lowest Concern: Lower relative risk under this model; NOT certified safe or clean',
-} as const;
-
 export function GhatRiskCard({
   stability,
   profile,
@@ -36,6 +24,7 @@ export function GhatRiskCard({
   onOpenEvidence,
 }: GhatRiskCardProps) {
   const triggerBtnRef = useRef<HTMLButtonElement>(null);
+  const { t } = useLanguage();
 
   const keyReadings = readings
     .filter(r => r.ghat === stability.ghat && (r.parameter === 'Dissolved oxygen' || r.parameter === 'BOD'))
@@ -53,19 +42,33 @@ export function GhatRiskCard({
     recommendedAction = 'Urgent baseline sampling required to compensate for missing historical records.';
   }
 
+  const tierDescription =
+    stability.tier === 'A'
+      ? t('card.tierDescA')
+      : stability.tier === 'B'
+        ? t('card.tierDescB')
+        : t('card.tierDescC');
+
+  const tierName =
+    stability.tier === 'A'
+      ? t('card.actFirst')
+      : stability.tier === 'B'
+        ? t('card.closeGroup')
+        : t('card.lowestConcern');
+
   return (
     <article className={`ghat-card tier-border-${stability.tier}`} aria-labelledby={`ghat-title-${stability.ghat}`}>
       <div className="card-top-row">
         <div className="card-heading-group">
           <div className="badges-group">
             <span className={`badge-tier tier-${stability.tier}`}>
-              Tier {stability.tier} · {stability.tier === 'A' ? 'Act First' : stability.tier === 'B' ? 'Close Group' : 'Lowest Concern'}
+              Tier {stability.tier} · {tierName}
             </span>
             <span
               className={`badge-confidence confidence-${coverage.confidence}`}
               title={coverage.confidenceReason}
             >
-              Confidence: {coverage.confidence} ({coverage.coveragePct}% data)
+              {t('card.confidence', { level: coverage.confidence, pct: coverage.coveragePct })}
             </span>
           </div>
           <h3 id={`ghat-title-${stability.ghat}`} className="ghat-name">
@@ -76,37 +79,45 @@ export function GhatRiskCard({
 
         <div className="score-box">
           <span className="score-val">{stability.score !== null ? stability.score.toFixed(2) : 'N/A'}</span>
-          <span className="score-lbl">Risk Score</span>
+          <span className="score-lbl">{t('card.riskScore')}</span>
         </div>
       </div>
 
-      <p className="tier-explanation">{TIER_DESCRIPTIONS[stability.tier]}</p>
+      <p className="tier-explanation">{tierDescription}</p>
 
       {profile.tags.length > 0 && (
         <div className="tags-container" aria-label="Identified risk patterns">
-          {profile.tags.map(tag => (
-            <span key={tag} className="risk-tag" title={TAG_EXPLANATIONS[tag] ?? tag}>
-              🏷️ {TAG_EXPLANATIONS[tag] ?? tag}
-            </span>
-          ))}
+          {profile.tags.map(tag => {
+            const tagKey = `tag.${tag}` as TranslationKeys;
+            const tagText = t(tagKey) || tag;
+            return (
+              <span key={tag} className="risk-tag" title={tagText}>
+                🏷️ {tagText}
+              </span>
+            );
+          })}
         </div>
       )}
 
       <div className="analysis-summary">
         <strong>Evidence-based Assessment:</strong>
         <p className="analysis-text">
-          Dissolved oxygen dropped below 5 mg/L before immersion in{' '}
-          <strong>{profile.doPreFail} of {profile.doEvents}</strong> complete events, crossed threshold during immersion in{' '}
-          <strong>{profile.doTriggered}</strong> event(s), and remained below standard a week later in{' '}
-          <strong>{profile.doAfterFail}</strong> event(s).
-          {stability.tier === 'A' && ` Ranked in the top 2 highest-risk sites in ${Math.round(stability.pTop2 * 100)}% of bootstrap resamples.`}
-          {stability.tier === 'C' && ` Ranked in the bottom 2 lowest-concern sites in ${Math.round(stability.pBottom2 * 100)}% of resamples.`}
+          {t('card.evidenceAssessment', {
+            doPreFail: profile.doPreFail,
+            doEvents: profile.doEvents,
+            doTriggered: profile.doTriggered,
+            doAfterFail: profile.doAfterFail,
+          })}
+          {stability.tier === 'A' &&
+            t('card.assessmentTop2', { pct: Math.round(stability.pTop2 * 100) })}
+          {stability.tier === 'C' &&
+            t('card.assessmentBottom2', { pct: Math.round(stability.pBottom2 * 100) })}
         </p>
       </div>
 
       {keyReadings.length > 0 && (
         <div className="key-readings-list">
-          <span className="key-readings-title">Key Historical Readings:</span>
+          <span className="key-readings-title">{t('card.keyReadings')}</span>
           <ul>
             {keyReadings.map(r => {
               const disp = displayReading(r);
@@ -125,12 +136,12 @@ export function GhatRiskCard({
 
       {coverage.missingEvents.length > 0 && (
         <div className="data-gap-alert">
-          ⚠️ <strong>Historical Data Gap:</strong> Entire event unrecorded: <code>{coverage.missingEvents.join(', ')}</code>.
+          {t('card.dataGapAlert', { events: coverage.missingEvents.join(', ') })}
         </div>
       )}
 
       <div className="recommended-action-box">
-        <span className="action-tag">Recommended Next Action:</span>
+        <span className="action-tag">{t('card.recommendedNextAction')}</span>
         <p>{recommendedAction}</p>
       </div>
 
@@ -143,7 +154,7 @@ export function GhatRiskCard({
           aria-expanded={false}
           aria-haspopup="dialog"
         >
-          🔍 View Complete Evidence Log (Every Report Page &amp; Reading)
+          {t('card.viewEvidence')}
         </button>
       </div>
     </article>

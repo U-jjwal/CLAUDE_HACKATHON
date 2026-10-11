@@ -4,7 +4,7 @@
    ========================================================================== */
 
 :root {
-  --font-stack: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans Devanagari", "Devanagari MT", sans-serif;
+  --font-stack: "Noto Sans Devanagari", Mangal, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
 
   /* Color Palette */
@@ -98,6 +98,7 @@ body {
   line-height: 1.5;
   color: var(--ink-primary);
   background-color: var(--bg-app);
+  overflow-x: hidden;
 }
 
 /* Accessibility: Focus visible */
@@ -111,13 +112,15 @@ body {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  width: 100%;
+  overflow-x: hidden;
 }
 
 .wrap {
   width: 100%;
-  max-width: 1120px;
+  max-width: 1840px;
   margin: 0 auto;
-  padding: var(--space-md);
+  padding: var(--space-md) clamp(12px, 3vw, 48px);
 }
 
 .app-container {
@@ -140,6 +143,7 @@ h4 { font-size: 0.9375rem; margin-bottom: var(--space-2xs); }
 p {
   margin-top: 0;
   margin-bottom: var(--space-xs);
+  max-width: 110ch;
 }
 
 .mute {
@@ -150,7 +154,7 @@ p {
 /* Cards & Generic Surfaces */
 .card {
   background-color: var(--bg-card);
-  border: 1px solid var(--border-line);
+  border: 1px solid var(--border-light);
   border-radius: var(--radius-md);
   padding: var(--space-md);
   margin-bottom: var(--space-lg);
@@ -199,8 +203,8 @@ p {
 
 /* Search in Top Bar */
 .search-container {
-  flex: 1;
-  max-width: 480px;
+  flex: 1 1 auto;
+  min-width: 200px;
   position: relative;
 }
 
@@ -338,12 +342,106 @@ p {
   border: 1px solid #c4b5fd;
 }
 
-/* Top Bar Login Trigger */
+/* Top Bar Actions & Language Switcher */
 .topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   flex-shrink: 0;
 }
 
+.lang-switcher-group {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.lang-segmented-control {
+  display: inline-flex;
+  background: var(--bg-card-alt);
+  border: 1px solid var(--border-line);
+  border-radius: var(--radius-pill);
+  padding: 2px;
+  gap: 2px;
+}
+
+.lang-btn {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 8px 14px;
+  font-size: 0.875rem;
+  font-weight: 700;
+  border: none;
+  background: transparent;
+  color: var(--ink-muted);
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lang-btn:hover {
+  color: var(--ink-primary);
+}
+
+.lang-btn.active {
+  background: var(--civic-blue);
+  color: #ffffff;
+}
+
+.lang-btn:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.hindi-draft-pill {
+  font-size: 0.6875rem;
+  color: #92400e;
+  background: #fef3c7;
+  border: 1px solid #fde68a;
+  padding: 1px 6px;
+  border-radius: var(--radius-pill);
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+.officer-account-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-officer-area {
+  min-height: 44px;
+  padding: 8px 14px;
+  background: var(--civic-blue);
+  color: #ffffff;
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+  font-size: 0.875rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+}
+
+.btn-officer-logout {
+  min-height: 44px;
+  padding: 8px 12px;
+  background: transparent;
+  border: 1px solid var(--border-line);
+  color: var(--ink-secondary);
+  border-radius: var(--radius-sm);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
 .btn-login-trigger {
+  min-height: 44px;
+  min-width: 44px;
   background-color: var(--civic-blue);
   color: #ffffff;
   border: none;
@@ -354,6 +452,7 @@ p {
   cursor: pointer;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
   transition: background-color 0.15s ease;
 }
@@ -362,21 +461,39 @@ p {
   background-color: var(--civic-blue-hover);
 }
 
-/* 1.2 Hero Main Grid (Map + Context) */
+/* 1.2 Hero Main Grid (Map 65% + Context 35%) */
 .hero-main-grid {
   display: grid;
-  grid-template-columns: 1.15fr 0.85fr;
+  grid-template-columns: 1fr;
   gap: var(--space-md);
   margin-top: var(--space-xs);
 }
 
+@media (min-width: 1024px) {
+  .hero-main-grid {
+    grid-template-columns: minmax(0, 1.9fr) minmax(320px, 1fr);
+  }
+}
+
 .hero-map-panel {
   background: var(--bg-card);
-  border: 1px solid var(--border-line);
+  border: 1px solid var(--border-light);
   border-radius: var(--radius-md);
   padding: var(--space-md);
   display: flex;
   flex-direction: column;
+}
+
+.hero-map-panel.fullscreen-active {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  border-radius: 0;
+  border: none;
+  padding: var(--space-md);
+  background: var(--bg-card);
+  max-width: 100vw;
+  max-height: 100vh;
 }
 
 .map-panel-header {
@@ -402,12 +519,46 @@ p {
   border-radius: var(--radius-pill);
 }
 
+.btn-fullscreen-map {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 6px 14px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--civic-blue);
+  background: var(--civic-blue-light);
+  border: 1px solid #bfdbfe;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  transition: all 0.15s ease;
+}
+
+.btn-fullscreen-map:hover {
+  background: #dbeafe;
+}
+
 .bhopal-leaflet-container {
-  height: 350px;
+  height: 380px;
   width: 100%;
   border-radius: var(--radius-sm);
   border: 1px solid var(--border-light);
   z-index: 1;
+}
+
+@media (min-width: 1024px) {
+  .bhopal-leaflet-container {
+    height: clamp(420px, 70vh, 780px);
+  }
+}
+
+.hero-map-panel.fullscreen-active .bhopal-leaflet-container {
+  height: calc(100vh - 120px) !important;
+  max-height: none;
+  flex: 1;
 }
 
 .map-legend-row {
@@ -751,20 +902,89 @@ p {
   margin-top: var(--space-lg);
 }
 
-/* Responsive adjustments for Hero */
-@media (max-width: 900px) {
+/* Responsive adjustments for Hero & Top Bar */
+@media (max-width: 1023px) {
   .hero-main-grid {
     grid-template-columns: 1fr;
   }
-  
+}
+
+@media (max-width: 768px) {
   .hero-top-bar {
     flex-wrap: wrap;
+    gap: var(--space-xs);
   }
 
   .search-container {
     order: 3;
     max-width: 100%;
     width: 100%;
+  }
+
+  .topbar-actions {
+    margin-left: auto;
+  }
+}
+
+/* Sticky Section Quick Navigation */
+.sticky-section-nav {
+  position: sticky;
+  top: 0;
+  z-index: 999;
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border-light);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  margin-bottom: var(--space-lg);
+  margin-left: calc(-1 * clamp(12px, 3vw, 48px));
+  margin-right: calc(-1 * clamp(12px, 3vw, 48px));
+  padding: 0 clamp(12px, 3vw, 48px);
+}
+
+.sticky-nav-scroll {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow-x: auto;
+  white-space: nowrap;
+  padding: 8px 0;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+}
+
+.nav-anchor-link {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 14px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--ink-secondary);
+  text-decoration: none;
+  border-radius: var(--radius-pill);
+  background: var(--bg-card-alt);
+  border: 1px solid var(--border-light);
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.nav-anchor-link:hover,
+.nav-anchor-link:focus-visible {
+  color: var(--civic-blue);
+  background: var(--civic-blue-light);
+  border-color: #bfdbfe;
+}
+
+/* Operational Dual Grid (Blind Spots + Check Reading side-by-side at >=1100px) */
+.operational-dual-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-lg);
+  align-items: start;
+  margin-bottom: var(--space-xl);
+}
+
+@media (min-width: 1100px) {
+  .operational-dual-grid {
+    grid-template-columns: 1fr 1fr;
   }
 }
 
@@ -1098,15 +1318,22 @@ p {
 }
 
 .tier-cards-stack {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: 1fr;
   gap: var(--space-md);
+  align-items: start;
+}
+
+@media (min-width: 1280px) {
+  .tier-cards-stack {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 /* Ghat Risk Card */
 .ghat-card {
   background: var(--bg-card);
-  border: 1px solid var(--border-line);
+  border: 1px solid var(--border-light);
   border-radius: var(--radius-md);
   padding: var(--space-md);
   position: relative;

@@ -1,5 +1,6 @@
-import { useState, useRef, useEffect, useId } from 'react';
+import { useState, useRef, useId } from 'react';
 import { useAuth } from '../../auth';
+import { useLanguage } from '../../i18n';
 import type { Stability } from '../../../core/score';
 import type { GhatProfile } from '../../../core/insights';
 import type { GhatCoverage } from '../../../core/coverage';
@@ -37,6 +38,7 @@ export function OfficerDashboard({
   onRemoveUploadedReadings,
 }: OfficerDashboardProps) {
   const { user, logout } = useAuth();
+  const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState<TabKey>('overview');
 
   if (!user) {
@@ -44,17 +46,17 @@ export function OfficerDashboard({
       <div className="officer-dashboard-layout">
         <div className="officer-demo-banner" role="status">
           <span className="banner-icon" aria-hidden="true">⚠️</span>
-          <span><strong>Demo mode:</strong> Restricted officer prototype area.</span>
+          <span><strong>Demo mode:</strong> {t('officer.demoNotice')}</span>
         </div>
         <div className="wrap officer-container" style={{ padding: '2rem 1rem' }}>
           <div className="card" style={{ maxWidth: 520, margin: '2rem auto', textAlign: 'center' }}>
-            <h2 style={{ fontSize: '1.4rem', marginBottom: '0.5rem' }}>Officer Login Required</h2>
-            <p className="mute">This workspace is restricted to authorized municipal officers.</p>
+            <h2 style={{ fontSize: '1.4rem', marginBottom: '0.5rem' }}>{t('officer.loginRequired')}</h2>
+            <p className="mute">{t('officer.restrictedWorkspace')}</p>
             <div className="modal-notice-banner" style={{ textAlign: 'left', margin: '1rem 0' }}>
-              ℹ️ <strong>Demo mode:</strong> Use demo credentials <code>test@gmail.com</code> / <code>123</code>.
+              ℹ️ <strong>Demo mode:</strong> {t('officer.demoHint')}
             </div>
             <a href="#/" className="btn-primary" style={{ display: 'inline-block', textDecoration: 'none', padding: '10px 20px' }}>
-              ← Return to Public Dashboard to Sign In
+              {t('officer.returnPublic')}
             </a>
           </div>
         </div>
@@ -134,7 +136,7 @@ export function OfficerDashboard({
       <div className="officer-demo-banner" role="status" aria-live="polite">
         <span className="banner-icon" aria-hidden="true">⚠️</span>
         <span>
-          <strong>Demo mode:</strong> data entered here stays in this browser tab only and is not saved to any server or official record.
+          {t('officer.demoBanner')}
         </span>
       </div>
 
@@ -142,7 +144,7 @@ export function OfficerDashboard({
         {/* Officer Top Nav Row */}
         <div className="officer-nav-row">
           <a href="#/" className="btn-back-public" aria-label="Return to public immersion dashboard">
-            ← Back to Public Dashboard
+            {t('officer.backPublic')}
           </a>
 
           <div className="officer-session-user">
@@ -153,7 +155,7 @@ export function OfficerDashboard({
               onClick={logout}
               aria-label="Log out of officer area"
             >
-              Sign Out
+              {t('nav.signOut')}
             </button>
           </div>
         </div>
@@ -161,7 +163,7 @@ export function OfficerDashboard({
         {/* 2. Welcome Header */}
         <header className="officer-welcome-header">
           <div className="welcome-text-group">
-            <h2>Welcome, {user?.name ?? 'Demo Officer'}</h2>
+            <h2>{t('officer.welcome', { name: user?.name ?? 'Demo Officer' })}</h2>
             <div className="officer-meta-row">
               <span className="meta-dept">🏛️ {user?.department ?? 'Bhopal Municipal Corporation (demo)'}</span>
               <span className="meta-desig">📋 {user?.designation ?? 'Sanitation Officer (demo)'}</span>
@@ -171,7 +173,7 @@ export function OfficerDashboard({
 
           <div className="countdown-widget" role="status" aria-label="Countdown to Durga Visarjan">
             <div className="countdown-number">{daysRemaining}</div>
-            <div className="countdown-label">Days to Durga Visarjan<br />(20 October 2026)</div>
+            <div className="countdown-label">{t('officer.daysRemaining')}</div>
           </div>
         </header>
 
@@ -194,7 +196,7 @@ export function OfficerDashboard({
               onClick={() => setActiveTab('overview')}
               onKeyDown={e => handleTabKeyDown(e, 'overview')}
             >
-              📊 Overview
+              {t('officer.tabOverview')}
             </button>
 
             <button
@@ -209,7 +211,7 @@ export function OfficerDashboard({
               onClick={() => setActiveTab('upload')}
               onKeyDown={e => handleTabKeyDown(e, 'upload')}
             >
-              📂 Upload new data {uploadedReadings.length > 0 && `(${uploadedReadings.length})`}
+              {t('officer.tabUpload')} {uploadedReadings.length > 0 && `(${uploadedReadings.length})`}
             </button>
 
             <button
@@ -224,7 +226,7 @@ export function OfficerDashboard({
               onClick={() => setActiveTab('alerts')}
               onKeyDown={e => handleTabKeyDown(e, 'alerts')}
             >
-              🔔 Alerts {alertsFeed.length > 0 && `(${alertsFeed.length})`}
+              {t('officer.tabAlerts')} {alertsFeed.length > 0 && `(${alertsFeed.length})`}
             </button>
           </div>
         </div>

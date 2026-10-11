@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useLanguage } from '../i18n';
 
 interface BlindSpotPanelProps {
   sites: string[];
@@ -13,6 +14,7 @@ export function BlindSpotPanel({
   onEditSite,
   onRemoveSite,
 }: BlindSpotPanelProps) {
+  const { t } = useLanguage();
   const [newSiteInput, setNewSiteInput] = useState('');
   const [editingSite, setEditingSite] = useState<string | null>(null);
   const [editInput, setEditInput] = useState('');
@@ -58,19 +60,17 @@ export function BlindSpotPanel({
     <section className="blind-spot-section" aria-labelledby="blind-spot-heading">
       <div className="section-header-row">
         <div>
-          <h2 id="blind-spot-heading">Unmonitored / Provisional Immersion Sites</h2>
+          <h2 id="blind-spot-heading">{t('blindSpot.heading')}</h2>
           <p className="mute">
-            <strong>Provisional, editable operational list. Source: February 2026 press report. Confirm with BMC before use.</strong>
+            <strong>{t('blindSpot.subtitle')}</strong>
           </p>
         </div>
-        <span className="unmonitored-badge">0 Historical MPPCB Samples</span>
+        <span className="unmonitored-badge">{t('blindSpot.zeroSamples')}</span>
       </div>
 
       <div className="card blind-spot-card">
         <div className="blind-spot-warning">
-          ⚠️ <strong>Notice to BMC Officers:</strong> These sites are reported in press coverage following the NGT idol immersion restrictions.
-          None of these sites have historical water quality records in the MPPCB 2023–2025 reports.
-          <em>"No data" means conditions are completely unknown, never assumed clean or safe. Fresh pre-immersion sampling must precede operational use.</em>
+          ⚠️ {t('blindSpot.warning')}
         </div>
 
         {formError && (
@@ -97,10 +97,10 @@ export function BlindSpotPanel({
                     />
                     <div className="btn-group">
                       <button type="submit" className="btn-small btn-save">
-                        Save
+                        {t('blindSpot.btnSave')}
                       </button>
                       <button type="button" className="btn-small btn-cancel" onClick={cancelEdit}>
-                        Cancel
+                        {t('blindSpot.btnCancel')}
                       </button>
                     </div>
                   </form>
@@ -117,7 +117,7 @@ export function BlindSpotPanel({
                         onClick={() => startEdit(s)}
                         aria-label={`Edit ${s}`}
                       >
-                        ✏️ Edit
+                        ✏️ {t('blindSpot.btnEdit')}
                       </button>
                       <button
                         type="button"
@@ -125,7 +125,7 @@ export function BlindSpotPanel({
                         onClick={() => onRemoveSite(s)}
                         aria-label={`Remove ${s}`}
                       >
-                        🗑️ Remove
+                        🗑️ {t('blindSpot.btnRemove')}
                       </button>
                     </div>
                   </div>
@@ -137,19 +137,19 @@ export function BlindSpotPanel({
 
         <form onSubmit={handleAdd} className="add-site-form" aria-label="Add a new provisional site">
           <label htmlFor="new-site-input" className="form-label">
-            Add Another Operational / Immersion Site:
+            {t('blindSpot.addTitle')}:
           </label>
           <div className="add-input-row">
             <input
               id="new-site-input"
               type="text"
               className="form-input"
-              placeholder="e.g. Kolar Dam temporary pit"
+              placeholder={t('blindSpot.inputPlaceholder')}
               value={newSiteInput}
               onChange={e => setNewSiteInput(e.target.value)}
             />
             <button type="submit" className="btn-primary">
-              + Add Site
+              + {t('blindSpot.btnAdd')}
             </button>
           </div>
         </form>

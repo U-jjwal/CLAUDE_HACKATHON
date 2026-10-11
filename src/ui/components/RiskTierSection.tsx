@@ -3,6 +3,7 @@ import type { Stability, Tier } from '../../core/score';
 import type { GhatProfile } from '../../core/insights';
 import type { GhatCoverage } from '../../core/coverage';
 import type { Reading, Festival } from '../../core/types';
+import { useLanguage } from '../i18n';
 import { GhatRiskCard } from './GhatRiskCard';
 import { EvidenceDrawer } from './EvidenceDrawer';
 
@@ -21,6 +22,7 @@ export function RiskTierSection({
   coverages,
   readings,
 }: RiskTierSectionProps) {
+  const { t } = useLanguage();
   const [activeEvidenceGhat, setActiveEvidenceGhat] = useState<string | null>(null);
   const [triggerElement, setTriggerElement] = useState<HTMLElement | null>(null);
 
@@ -78,10 +80,13 @@ export function RiskTierSection({
     <section className="risk-tier-section" aria-labelledby="triage-tiers-heading">
       <div className="section-header-row">
         <div>
-          <h2 id="triage-tiers-heading">Ghat Attention Tiers ({festival} Events)</h2>
+          <h2 id="triage-tiers-heading">
+            {t('tiers.heading', {
+              festival: festival === 'All' ? t('festival.all') : festival,
+            })}
+          </h2>
           <p className="mute">
-            Only the extreme tiers (Tier A and Tier C) are statistically stable. With approximately 6 events per ghat,
-            the middle ghats share Tier B because bootstrap resampling reveals significant rank overlap.
+            {t('tiers.subtitle')}
           </p>
         </div>
       </div>
@@ -90,22 +95,22 @@ export function RiskTierSection({
         {renderTierGroup(
           'A',
           tierA,
-          'Tier A · Act First (Highest Triage Priority)',
-          'Consistently ranks in top-2 risk in >80% of resamples. Suffers from pre-immersion hypoxia, severe organic surges, or delayed recovery.',
+          t('tiers.tierATitle'),
+          t('tiers.tierADesc'),
         )}
 
         {renderTierGroup(
           'B',
           tierB,
-          'Tier B · Close Group (Order Within Tier Is Not Reliable)',
-          'Intermediate risk sites. Resampling proves rank order within this group fluctuates across events; do not treat positions 3–6 as a linear hierarchy.',
+          t('tiers.tierBTitle'),
+          t('tiers.tierBDesc'),
         )}
 
         {renderTierGroup(
           'C',
           tierC,
-          'Tier C · Lowest Concern ("Lowest Concern" ≠ Safe or Clean)',
-          'Lowest relative concern under this composite index. NOT clean or drinking quality: BOD remains above 3 mg/L in historical samples.',
+          t('tiers.tierCTitle'),
+          t('tiers.tierCDesc'),
         )}
       </div>
 

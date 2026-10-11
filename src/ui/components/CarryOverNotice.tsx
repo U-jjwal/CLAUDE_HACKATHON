@@ -1,4 +1,5 @@
 import type { CarryOver } from '../../core/insights';
+import { useLanguage } from '../i18n';
 
 interface CarryOverNoticeProps {
   carryOverDO: CarryOver;
@@ -6,16 +7,24 @@ interface CarryOverNoticeProps {
 }
 
 export function CarryOverNotice({ carryOverDO, carryOverBOD }: CarryOverNoticeProps) {
+  const { t } = useLanguage();
+
   return (
-    <aside className="carryover-banner" role="region" aria-label="Ganesh to Durga Carry-over Notice">
+    <aside className="carryover-banner" role="region" aria-label={t('carryover.title')}>
       <div className="banner-icon" aria-hidden="true">⚠️</div>
       <div className="banner-body">
-        <strong>Seasonal Carry-Over Notice (Ganesh to Durga Immersion Gap):</strong>
+        <strong>{t('carryover.title')}</strong>
         <p>
-          Historical paired data shows that water quality starts Durga visarjan in worse condition than Ganesh visarjan in{' '}
-          <strong>{carryOverDO.durgaWorse} of {carryOverDO.n}</strong> paired ghat-years for Dissolved Oxygen (mean Ganesh pre: {carryOverDO.meanGaneshPre.toFixed(1)} mg/L vs Durga pre: {carryOverDO.meanDurgaPre.toFixed(1)} mg/L),
-          and in <strong>{carryOverBOD.durgaWorse} of {carryOverBOD.n}</strong> paired ghat-years for BOD (mean Ganesh pre: {carryOverBOD.meanGaneshPre.toFixed(1)} mg/L vs Durga pre: {carryOverBOD.meanDurgaPre.toFixed(1)} mg/L).
-          <em> Small multi-year sample; treat as a strong operational warning, not statistical proof.</em>
+          {t('carryover.text', {
+            doWorse: carryOverDO.durgaWorse,
+            doN: carryOverDO.n,
+            meanGaneshDO: carryOverDO.meanGaneshPre.toFixed(1),
+            meanDurgaDO: carryOverDO.meanDurgaPre.toFixed(1),
+            bodWorse: carryOverBOD.durgaWorse,
+            bodN: carryOverBOD.n,
+            meanGaneshBOD: carryOverBOD.meanGaneshPre.toFixed(1),
+            meanDurgaBOD: carryOverBOD.meanDurgaPre.toFixed(1),
+          })}
         </p>
       </div>
     </aside>

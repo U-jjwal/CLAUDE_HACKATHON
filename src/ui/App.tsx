@@ -7,6 +7,7 @@ import { computeTopActions } from '../core/actions';
 import { buildBriefFacts, INITIAL_BLIND_SPOTS } from '../core/facts';
 import { getRawCsv, parseAllReadings } from './data';
 import { AuthProvider } from './auth';
+import { LanguageProvider, useLanguage } from './i18n';
 
 import { AppHeader } from './components/AppHeader';
 import { Glossary } from './components/Glossary';
@@ -22,6 +23,7 @@ import { TrustAndLimits } from './components/TrustAndLimits';
 import { OfficerDashboard } from './components/officer/OfficerDashboard';
 
 function DashboardApp() {
+  const { t } = useLanguage();
   const [loadState, setLoadState] = useState<{
     status: 'loading' | 'ready' | 'error';
     readings: Reading[];
@@ -171,8 +173,8 @@ function DashboardApp() {
     return (
       <main className="wrap app-container" role="status" aria-live="polite">
         <div className="card loading-card">
-          <h2>Loading Historical Water Quality Data...</h2>
-          <p className="mute">Parsing Bhopal Municipal Corporation visarjan records (2023–2025)...</p>
+          <h2>{t('app.loadingTitle')}</h2>
+          <p className="mute">{t('app.loadingDesc')}</p>
         </div>
       </main>
     );
@@ -182,10 +184,10 @@ function DashboardApp() {
     return (
       <main className="wrap app-container" role="alert" aria-live="assertive">
         <div className="card error-card">
-          <h2>Dataset Loading Failure</h2>
+          <h2>{t('app.errorTitle')}</h2>
           <p>{loadState.error ?? 'An unexpected error occurred while processing water quality records.'}</p>
           <button type="button" className="btn-primary" onClick={loadData}>
-            🔄 Retry Loading Dataset
+            {t('app.retryBtn')}
           </button>
         </div>
       </main>
@@ -217,9 +219,9 @@ function DashboardApp() {
         <div className="officer-demo-banner" role="status">
           <span className="banner-icon" aria-hidden="true">⚠️</span>
           <span>
-            <strong>Active In-Memory Session:</strong> Showing analysis with {uploadedReadings.length} uploaded records.{' '}
+            {t('officer.activeSessionPublic', { count: uploadedReadings.length })}{' '}
             <a href="#/officer" style={{ color: 'inherit', fontWeight: 700, textDecoration: 'underline' }}>
-              Manage in Officer Area →
+              {t('officer.manageInArea')}
             </a>
           </span>
         </div>
@@ -236,11 +238,27 @@ function DashboardApp() {
           blindSpots={blindSpots}
         />
 
+        {/* Small anchor-link sticky nav */}
+        <nav className="sticky-section-nav" aria-label="Section Quick Navigation">
+          <div className="sticky-nav-scroll">
+            <a href="#hero-map" className="nav-anchor-link">{t('quickNav.map')}</a>
+            <a href="#top-actions" className="nav-anchor-link">{t('quickNav.actions')}</a>
+            <a href="#ghat-tiers" className="nav-anchor-link">{t('quickNav.tiers')}</a>
+            <a href="#data-gaps" className="nav-anchor-link">{t('quickNav.gaps')}</a>
+            <a href="#blind-spots" className="nav-anchor-link">{t('quickNav.blindSpots')}</a>
+            <a href="#check-reading" className="nav-anchor-link">{t('quickNav.reading')}</a>
+            <a href="#bilingual-brief" className="nav-anchor-link">{t('quickNav.brief')}</a>
+            <a href="#trust-limits" className="nav-anchor-link">{t('quickNav.trust')}</a>
+          </div>
+        </nav>
+
         {/* Compact always-visible glossary */}
         <Glossary />
 
         {/* 2. Top 3 Priority Actions */}
-        <TopActions actions={topActions} />
+        <div id="top-actions">
+          <TopActions actions={topActions} />
+        </div>
 
         {/* 3. Carry-over notice (14 of 19 DO, 14 of 18 BOD from carryOver()) */}
         <CarryOverNotice carryOverDO={carryOverDO} carryOverBOD={carryOverBOD} />
@@ -249,43 +267,55 @@ function DashboardApp() {
         <FestivalSelector festival={festival} onChange={setFestival} />
 
         {/* 5. Tiers and Ghat risk cards with Evidence Drawers */}
-        <RiskTierSection
-          festival={festival}
-          stability={stability}
-          profiles={profiles}
-          coverages={coverages}
-          readings={view}
-        />
+        <div id="ghat-tiers">
+          <RiskTierSection
+            festival={festival}
+            stability={stability}
+            profiles={profiles}
+            coverages={coverages}
+            readings={view}
+          />
+        </div>
 
         {/* 6. Comprehensive Monitoring & Data Gap Grid */}
-        <DataGapGrid readings={effectiveReadings} ghats={ghats} />
+        <div id="data-gaps">
+          <DataGapGrid readings={effectiveReadings} ghats={ghats} />
+        </div>
 
-        {/* 7. Provisional / Unmonitored Sites */}
-        <BlindSpotPanel
-          sites={blindSpots}
-          onAddSite={handleAddBlindSpot}
-          onEditSite={handleEditBlindSpot}
-          onRemoveSite={handleRemoveBlindSpot}
-        />
+        {/* 7 & 8. Operational Dual Grid: Blind Spots & Check a Reading */}
+        <div className="operational-dual-grid">
+          <div id="blind-spots">
+            <BlindSpotPanel
+              sites={blindSpots}
+              onAddSite={handleAddBlindSpot}
+              onEditSite={handleEditBlindSpot}
+              onRemoveSite={handleRemoveBlindSpot}
+            />
+          </div>
 
-        {/* 8. Check an entered reading (preview only, not saved) */}
-        <NewReadingForm ghats={ghats} readings={effectiveReadings} />
+          <div id="check-reading">
+            <NewReadingForm ghats={ghats} readings={effectiveReadings} />
+          </div>
+        </div>
 
         {/* 9. Bilingual Brief (English, Hindi, WhatsApp copy, Print / PDF) */}
-        <BilingualBrief facts={briefFacts} />
+        <div id="bilingual-brief">
+          <BilingualBrief facts={briefFacts} />
+        </div>
 
         {/* 10. Trust & Technical Limits */}
-        <TrustAndLimits stats={briefFacts.stats} />
+        <div id="trust-limits">
+          <TrustAndLimits stats={briefFacts.stats} />
+        </div>
       </main>
 
       <footer className="app-footer">
         <div className="wrap footer-content">
           <p>
-            <strong>Visarjan Ghat Watch</strong> · Bhopal Municipal Corporation Decision Support System.
+            <strong>{t('app.footerTitle')}</strong>
           </p>
           <p className="mute">
-            Source Data: Madhya Pradesh Pollution Control Board (MPPCB) Idol Immersion Reports (2023–2025).
-            Benchmark: CPCB Class B Criteria (Outdoor Bathing). All reports cited by year and page.
+            {t('app.footerDesc')}
           </p>
         </div>
       </footer>
@@ -295,8 +325,10 @@ function DashboardApp() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <DashboardApp />
-    </AuthProvider>
+    <LanguageProvider>
+      <AuthProvider>
+        <DashboardApp />
+      </AuthProvider>
+    </LanguageProvider>
   );
 }

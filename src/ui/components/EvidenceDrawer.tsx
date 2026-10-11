@@ -3,6 +3,7 @@ import type { Reading } from '../../core/types';
 import { exceeds } from '../../core/limits';
 import { cite, REPORT_FILE } from '../../core/clean';
 import { displayReading } from '../readingDisplay';
+import { useLanguage } from '../i18n';
 
 interface EvidenceDrawerProps {
   ghat: string;
@@ -21,6 +22,7 @@ export function EvidenceDrawer({
 }: EvidenceDrawerProps) {
   const drawerRef = useRef<HTMLDivElement>(null);
   const closeBtnRef = useRef<HTMLButtonElement>(null);
+  const { t } = useLanguage();
 
   // Focus management: focus close button on open, return to trigger on close
   useEffect(() => {
@@ -61,38 +63,37 @@ export function EvidenceDrawer({
         <div className="drawer-header">
           <div>
             <h3 id="drawer-title" className="drawer-title">
-              Evidence Log: {ghat}
+              {t('drawer.title', { ghat })}
             </h3>
-            <p className="drawer-sub">{waterBody} · Verified MPPCB Report Rows</p>
+            <p className="drawer-sub">{t('drawer.sub', { waterBody })}</p>
           </div>
           <button
             type="button"
             ref={closeBtnRef}
             className="drawer-close-btn"
             onClick={onClose}
-            aria-label={`Close evidence log for ${ghat}`}
+            aria-label={t('drawer.closeAria', { ghat })}
           >
-            ✕ Close
+            {t('drawer.close')}
           </button>
         </div>
 
         <div className="drawer-body">
           <p className="mute">
-            Every measurement with exact report publication, festival phase, and official page reference.
-            Note: Units are assumed (reports print none). Missing entries and BDL are distinguished.
+            {t('drawer.muteNote')}
           </p>
 
           <div className="table-responsive">
             <table className="evidence-table">
               <thead>
                 <tr>
-                  <th scope="col">Event</th>
-                  <th scope="col">Phase</th>
-                  <th scope="col">Parameter</th>
-                  <th scope="col">State &amp; Value</th>
-                  <th scope="col">Units</th>
-                  <th scope="col">CPCB Class B</th>
-                  <th scope="col">Official Source &amp; Page</th>
+                  <th scope="col">{t('drawer.colEvent')}</th>
+                  <th scope="col">{t('drawer.colPhase')}</th>
+                  <th scope="col">{t('drawer.colParam')}</th>
+                  <th scope="col">{t('drawer.colStateValue')}</th>
+                  <th scope="col">{t('drawer.colUnits')}</th>
+                  <th scope="col">{t('drawer.colBenchmark')}</th>
+                  <th scope="col">{t('drawer.colSourcePage')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -121,9 +122,9 @@ export function EvidenceDrawer({
                         {outside === null ? (
                           <span className="mute">-</span>
                         ) : outside ? (
-                          <span className="badge-exceed">Outside Limit</span>
+                          <span className="badge-exceed">{t('gapGrid.outsideLimit')}</span>
                         ) : (
-                          <span className="badge-within">Within Limit</span>
+                          <span className="badge-within">{t('gapGrid.withinLimit')}</span>
                         )}
                       </td>
                       <td>

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { Reading, Phase } from '../../core/types';
 import { assessReading } from '../../core/insights';
 import { LIMITS } from '../../core/limits';
+import { useLanguage } from '../i18n';
 
 interface NewReadingFormProps {
   ghats: string[];
@@ -9,6 +10,7 @@ interface NewReadingFormProps {
 }
 
 export function NewReadingForm({ ghats, readings }: NewReadingFormProps) {
+  const { t } = useLanguage();
   const [ghat, setGhat] = useState('');
   const [parameter, setParameter] = useState('Dissolved oxygen');
   const [phase, setPhase] = useState<Phase>('pre');
@@ -78,24 +80,23 @@ export function NewReadingForm({ ghats, readings }: NewReadingFormProps) {
     <section className="new-reading-section" aria-labelledby="form-heading">
       <div className="section-header-row">
         <div>
-          <h2 id="form-heading">Check an entered reading (preview only, not saved)</h2>
+          <h2 id="form-heading">{t('readingForm.heading')}</h2>
           <p className="mute">
-            <strong>This does not update the historical data and is not an official sample.</strong>
+            <strong>{t('readingForm.subtitle')}</strong>
           </p>
         </div>
-        <span className="preview-badge">Sandbox Assessment Tool</span>
+        <span className="preview-badge">{t('readingForm.badge')}</span>
       </div>
 
       <div className="card form-card">
         <p className="form-disclaimer">
-          Enter an on-site field testing result to immediately compare it with the CPCB Class B standard
-          and this ghat's historical distribution. This calculation does not alter triage scores, weights, or risk tiers.
+          {t('readingForm.disclaimer')}
         </p>
 
         <div className="form-grid">
           <div className="form-field">
             <label htmlFor="input-ghat" className="field-label">
-              Monitored Ghat:
+              {t('readingForm.selectGhat')}
             </label>
             <select
               id="input-ghat"
@@ -109,7 +110,7 @@ export function NewReadingForm({ ghats, readings }: NewReadingFormProps) {
                 }
               }}
             >
-              <option value="">-- Select Ghat --</option>
+              <option value="">{t('readingForm.selectGhatPlaceholder')}</option>
               {ghats.map(g => (
                 <option key={g} value={g}>
                   {g}
@@ -120,7 +121,7 @@ export function NewReadingForm({ ghats, readings }: NewReadingFormProps) {
 
           <div className="form-field">
             <label htmlFor="input-param" className="field-label">
-              Parameter:
+              {t('readingForm.param')}
             </label>
             <select
               id="input-param"
@@ -143,7 +144,7 @@ export function NewReadingForm({ ghats, readings }: NewReadingFormProps) {
 
           <div className="form-field">
             <label htmlFor="input-phase" className="field-label">
-              Immersion Phase:
+              {t('readingForm.phase')}
             </label>
             <select
               id="input-phase"
@@ -151,15 +152,15 @@ export function NewReadingForm({ ghats, readings }: NewReadingFormProps) {
               value={phase}
               onChange={e => setPhase(e.target.value as Phase)}
             >
-              <option value="pre">Pre-immersion (Baseline)</option>
-              <option value="during">During immersion (Peak)</option>
-              <option value="after">After immersion (+7 Days)</option>
+              <option value="pre">{t('readingForm.phasePre')}</option>
+              <option value="during">{t('readingForm.phaseDuring')}</option>
+              <option value="after">{t('readingForm.phaseAfter')}</option>
             </select>
           </div>
 
           <div className="form-field">
             <label htmlFor="input-value" className="field-label">
-              Measurement Value {parameter === 'pH' ? '(pH units)' : '(mg/L assumed)'}:
+              {t('readingForm.value', { unit: parameter === 'pH' ? '(pH units)' : '(mg/L assumed)' })}
             </label>
             <input
               id="input-value"
@@ -188,34 +189,34 @@ export function NewReadingForm({ ghats, readings }: NewReadingFormProps) {
           <div className="form-result-box" role="region" aria-live="polite" aria-label="Assessment result">
             <div className="result-header">
               <span className={`result-tag ${result.outsideClassB ? 'tag-failed' : 'tag-passed'}`}>
-                {result.outsideClassB ? '⚠️ Outside CPCB Class B Standard' : '✅ Meets CPCB Class B Standard'}
+                {result.outsideClassB ? t('readingForm.outsideClassB') : t('readingForm.meetsClassB')}
               </span>
               <span className="benchmark-note">
-                Criterion: {result.parameter} {result.limit}
+                {t('readingForm.criterion', { param: result.parameter, limit: result.limit })}
               </span>
             </div>
 
             <div className="result-stats">
               <p>
-                <strong>Comparative Historical Position:</strong>{' '}
+                <strong>{t('readingForm.historicalComparison')}</strong>{' '}
                 {result.pastReadings > 0 ? (
                   result.worseThanShareOfPast !== null ? (
-                    <>
-                      Worse than <strong>{Math.round(result.worseThanShareOfPast * 100)}%</strong> of this ghat's{' '}
-                      <strong>{result.pastReadings}</strong> previous {result.phase}-immersion test(s).
-                    </>
+                    t('readingForm.worseThan', {
+                      pct: Math.round(result.worseThanShareOfPast * 100),
+                      n: result.pastReadings,
+                      phase: result.phase,
+                    })
                   ) : (
-                    'Equals historical median.'
+                    t('readingForm.equalsMedian')
                   )
                 ) : (
-                  'No historical samples found for this ghat in this specific phase.'
+                  t('readingForm.noHistorical')
                 )}
               </p>
             </div>
 
             <div className="result-limitations mute">
-              <em>Limitations:</em> Standard units (mg/L) are assumed. BOD incubation method is unconfirmed.
-              CPCB Class B represents bathing criteria, not a legally binding immersion classification.
+              {t('readingForm.limitations')}
             </div>
           </div>
         )}

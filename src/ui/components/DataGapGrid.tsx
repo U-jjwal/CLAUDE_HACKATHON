@@ -3,6 +3,7 @@ import type { Reading } from '../../core/types';
 import { cite, REPORT_FILE } from '../../core/clean';
 import { exceeds } from '../../core/limits';
 import { displayReading, type DisplayReading } from '../readingDisplay';
+import { useLanguage } from '../i18n';
 
 interface DataGapGridProps {
   readings: Reading[];
@@ -24,6 +25,7 @@ const PARAMS = ['Dissolved oxygen', 'BOD', 'pH'] as const;
 const PHASES = ['pre', 'during', 'after'] as const;
 
 export function DataGapGrid({ readings, ghats }: DataGapGridProps) {
+  const { t } = useLanguage();
   const [selectedCell, setSelectedCell] = useState<SelectedCell | null>(null);
 
   // All 6 distinct events in chronological order
@@ -71,41 +73,40 @@ export function DataGapGrid({ readings, ghats }: DataGapGridProps) {
     <section className="gap-grid-section" aria-labelledby="gap-grid-heading">
       <div className="section-header-row">
         <div>
-          <h2 id="gap-grid-heading">Comprehensive Monitoring &amp; Data-Gap Matrix</h2>
+          <h2 id="gap-grid-heading">{t('gapGrid.heading')}</h2>
           <p className="mute">
-            Multi-year parameter coverage across DO, BOD, and pH. Every cell displays a state symbol and is inspectable.
-            Hatched cells represent missing data or absent tables; missing is never clean or zero.
+            {t('gapGrid.subtitle')}
           </p>
         </div>
       </div>
 
       {/* Visible Legend */}
       <div className="grid-legend" role="region" aria-label="Grid status legend">
-        <span className="legend-label">Legend:</span>
+        <span className="legend-label">{t('gapGrid.legendLabel')}</span>
         <div className="legend-items">
           <div className="legend-item">
             <span className="legend-swatch swatch-within">✓</span>
-            <span>Numeric within Class B</span>
+            <span>{t('gapGrid.within')}</span>
           </div>
           <div className="legend-item">
             <span className="legend-swatch swatch-outside">✗</span>
-            <span>Numeric outside Class B</span>
+            <span>{t('gapGrid.outside')}</span>
           </div>
           <div className="legend-item">
             <span className="legend-swatch swatch-bdl">B</span>
-            <span>Below Detection Limit (BDL)</span>
+            <span>{t('gapGrid.bdl')}</span>
           </div>
           <div className="legend-item">
             <span className="legend-swatch swatch-likely-bdl">L</span>
-            <span>Likely BDL (Verify)</span>
+            <span>{t('gapGrid.likelyBdl')}</span>
           </div>
           <div className="legend-item">
             <span className="legend-swatch swatch-not-sampled">–</span>
-            <span>Report Marked 'Not Sampled'</span>
+            <span>{t('gapGrid.notSampled')}</span>
           </div>
           <div className="legend-item">
             <span className="legend-swatch swatch-no-record">∅</span>
-            <span>No Table in Report</span>
+            <span>{t('gapGrid.noRecord')}</span>
           </div>
         </div>
       </div>
@@ -116,7 +117,7 @@ export function DataGapGrid({ readings, ghats }: DataGapGridProps) {
           <thead>
             <tr>
               <th className="sticky-col header-ghat-col" rowSpan={2} scope="col">
-                Ghat &amp; Parameter
+                {t('gapGrid.colGhat')}
               </th>
               {events.map(ev => (
                 <th key={`${ev.year}-${ev.festival}`} colSpan={3} scope="colgroup" className="ev-group-header">
@@ -257,24 +258,29 @@ export function DataGapGrid({ readings, ghats }: DataGapGridProps) {
         <div className="inspect-drawer" role="region" aria-label="Selected cell measurement details">
           <div className="inspect-header">
             <h4>
-              Inspection: {selectedCell.ghat} · {selectedCell.year} {selectedCell.festival} ({selectedCell.phase})
+              {t('gapGrid.inspectTitle', {
+                ghat: selectedCell.ghat,
+                year: selectedCell.year,
+                festival: selectedCell.festival,
+                phase: selectedCell.phase,
+              })}
             </h4>
             <button
               type="button"
               className="btn-close-inspect"
               onClick={() => setSelectedCell(null)}
-              aria-label="Close inspector"
+              aria-label={t('gapGrid.closeInspect')}
             >
               ✕
             </button>
           </div>
           <div className="inspect-details-grid">
             <div className="inspect-field">
-              <span className="inspect-lbl">Parameter:</span>
+              <span className="inspect-lbl">{t('gapGrid.paramLabel')}</span>
               <span className="inspect-val">{selectedCell.parameter}</span>
             </div>
             <div className="inspect-field">
-              <span className="inspect-lbl">Reported State:</span>
+              <span className="inspect-lbl">{t('gapGrid.stateLabel')}</span>
               <span className="inspect-val">
                 <span className={`cell-state-chip chip-${selectedCell.display.kind}`}>
                   {selectedCell.display.label}
@@ -282,27 +288,27 @@ export function DataGapGrid({ readings, ghats }: DataGapGridProps) {
               </span>
             </div>
             <div className="inspect-field">
-              <span className="inspect-lbl">Units:</span>
+              <span className="inspect-lbl">{t('gapGrid.unitsLabel')}</span>
               <span className="inspect-val">{selectedCell.display.unitLabel || 'None'}</span>
             </div>
             <div className="inspect-field">
-              <span className="inspect-lbl">Class B Status:</span>
+              <span className="inspect-lbl">{t('gapGrid.classBLabel')}</span>
               <span className="inspect-val">
                 {selectedCell.outsideLimit === null
-                  ? 'No benchmark limit'
+                  ? t('gapGrid.noBenchmark')
                   : selectedCell.outsideLimit
-                  ? '⚠️ Outside Class B threshold'
-                  : '✅ Within Class B threshold'}
+                  ? t('gapGrid.outsideLimit')
+                  : t('gapGrid.withinLimit')}
               </span>
             </div>
             {selectedCell.reading && (
               <>
                 <div className="inspect-field">
-                  <span className="inspect-lbl">Official Source:</span>
+                  <span className="inspect-lbl">{t('gapGrid.sourceLabel')}</span>
                   <span className="inspect-val">{cite(selectedCell.reading)}</span>
                 </div>
                 <div className="inspect-field">
-                  <span className="inspect-lbl">Source Document:</span>
+                  <span className="inspect-lbl">{t('gapGrid.docLabel')}</span>
                   <span className="inspect-val">
                     {REPORT_FILE[selectedCell.reading.year] ?? 'Official MPPCB Publication'}
                   </span>
@@ -311,7 +317,7 @@ export function DataGapGrid({ readings, ghats }: DataGapGridProps) {
             )}
             {selectedCell.display.note && (
               <div className="inspect-field full-width">
-                <span className="inspect-lbl">Technical Note:</span>
+                <span className="inspect-lbl">{t('gapGrid.techNote')}</span>
                 <span className="inspect-val">{selectedCell.display.note}</span>
               </div>
             )}

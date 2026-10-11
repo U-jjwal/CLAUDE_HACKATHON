@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useMemo } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useAuth } from '../auth';
+import { useLanguage } from '../i18n';
 import type { Stability, Tier } from '../../core/score';
 import type { GhatProfile } from '../../core/insights';
 
@@ -90,12 +91,14 @@ export function AppHeader({
   profiles = {},
   blindSpots = [],
 }: AppHeaderProps) {
+  const { lang, setLang, t } = useLanguage();
+  const { user, login, logout } = useAuth();
+
   // 1. Search state
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchFocused, setIsSearchFocused] = useState(false);
 
-  // Auth context
-  const { user, login, logout } = useAuth();
+  // Auth form states
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loginError, setLoginError] = useState<string | null>(null);
@@ -106,7 +109,8 @@ export function AppHeader({
   const modalRef = useRef<HTMLDivElement>(null);
   const emailInputRef = useRef<HTMLInputElement>(null);
 
-  // 3. Leaflet map refs
+  // 3. Leaflet map state & refs
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const markersRef = useRef<Map<string, L.Marker>>(new Map());
@@ -150,16 +154,55 @@ export function AppHeader({
       maxZoom: 18,
     }).addTo(map);
 
+    // Controlled scroll wheel zoom to avoid page hijacking
+    map.on('focus', () => map.scrollWheelZoom.enable());
+    map.on('click', () => map.scrollWheelZoom.enable());
+    map.on('blur', () => map.scrollWheelZoom.disable());
+
+    const container = mapContainerRef.current;
+    const handleMouseLeave = () => map.scrollWheelZoom.disable();
+    container?.addEventListener('mouseleave', handleMouseLeave);
+
     mapInstanceRef.current = map;
 
     return () => {
+      container?.removeEventListener('mouseleave', handleMouseLeave);
       map.remove();
       mapInstanceRef.current = null;
       markersRef.current.clear();
     };
   }, []);
 
-  // Update markers when stability/profiles change
+  // Window resize & layout change listener
+  useEffect(() => {
+    const handleResize = () => {
+      mapInstanceRef.current?.invalidateSize();
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Fullscreen toggle size invalidation
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      mapInstanceRef.current?.invalidateSize();
+    }, 100);
+    return () => clearTimeout(timeout);
+  }, [isFullscreen]);
+
+  // Esc key exits fullscreen map
+  useEffect(() => {
+    if (!isFullscreen) return;
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsFullscreen(false);
+      }
+    };
+    window.addEventListener('keydown', handleEsc);
+    return () => window.removeEventListener('keydown', handleEsc);
+  }, [isFullscreen]);
+
+  // Update markers when stability/profiles/language change
   useEffect(() => {
     const map = mapInstanceRef.current;
     if (!map) return;
@@ -170,7 +213,6 @@ export function AppHeader({
     }
     markersRef.current.clear();
 
-    // Helper for custom divIcon markers (no image assets!)
     const createCustomDivIcon = (tierType: 'a' | 'b' | 'c' | 'unmonitored', badgeChar: string) => {
       return L.divIcon({
         className: 'leaflet-div-marker-wrapper',
@@ -197,7 +239,9 @@ export function AppHeader({
 
       const tierBadge = document.createElement('span');
       tierBadge.className = `popup-badge badge-tier-${tier.toLowerCase()}`;
-      tierBadge.textContent = `Tier ${tier} · ${tier === 'A' ? 'Act First' : tier === 'B' ? 'Close Group' : 'Lowest Concern'}`;
+      tierBadge.textContent = `Tier ${tier} · ${
+        tier === 'A' ? t('card.actFirst') : tier === 'B' ? t('card.closeGroup') : t('card.lowestConcern')
+      }`;
       popupDiv.appendChild(tierBadge);
 
       const title = document.createElement('h4');
@@ -212,13 +256,13 @@ export function AppHeader({
 
       const scoreRow = document.createElement('div');
       scoreRow.className = 'popup-score-row';
-      scoreRow.innerHTML = `Risk Score: <strong>${score != null ? score.toFixed(2) : 'N/A'}</strong>`;
+      scoreRow.innerHTML = `${t('card.riskScore')}: <strong>${score != null ? score.toFixed(2) : 'N/A'}</strong>`;
       popupDiv.appendChild(scoreRow);
 
       const jumpBtn = document.createElement('button');
       jumpBtn.type = 'button';
       jumpBtn.className = 'btn-popup-jump';
-      jumpBtn.textContent = 'View Ghat Details & Evidence ↓';
+      jumpBtn.textContent = t('hero.popupJump');
       jumpBtn.onclick = () => {
         const el = document.getElementById(`ghat-title-${loc.name}`);
         if (el) {
@@ -241,7 +285,7 @@ export function AppHeader({
 
       const unBadge = document.createElement('span');
       unBadge.className = 'popup-badge badge-unmonitored';
-      unBadge.textContent = 'Provisional · Unmonitored Site';
+      unBadge.textContent = t('hero.legendUnmonitored');
       popupDiv.appendChild(unBadge);
 
       const title = document.createElement('h4');
@@ -256,13 +300,13 @@ export function AppHeader({
 
       const desc = document.createElement('p');
       desc.className = 'popup-desc';
-      desc.textContent = '0 MPPCB records in 2023–2025 reports. Fresh baseline sampling required before operational use.';
+      desc.textContent = t('hero.popupUnmonitoredDesc');
       popupDiv.appendChild(desc);
 
       marker.bindPopup(popupDiv);
       markersRef.current.set(unmon.name, marker);
     }
-  }, [tierMap, profiles]);
+  }, [tierMap, profiles, lang, t]);
 
   // Navigate to site on map and scroll
   const handleSelectSite = (site: GhatCoordinate) => {
@@ -349,17 +393,17 @@ export function AppHeader({
       closeModal();
       window.location.hash = '#/officer';
     } else {
-      setLoginError('Invalid email or password');
+      setLoginError(t('officer.invalidCreds'));
     }
   };
 
   return (
-    <header className="hero-section" aria-label="Visarjan Ghat Watch Hero">
+    <header className="hero-section" id="hero-map" aria-label="Visarjan Ghat Watch Hero">
       {/* 1. TOP BAR */}
       <div className="hero-top-bar" role="navigation" aria-label="Primary Navigation">
         <div className="brand-group">
-          <span className="brand-emblem" aria-hidden="true">🏛️</span>
-          <span className="brand-title">Visarjan Ghat Watch - Bhopal</span>
+          <span className="brand-emblem" aria-hidden="true">{t('brand.emblem')}</span>
+          <span className="brand-title">{t('brand.title')}</span>
         </div>
 
         <div className="search-container">
@@ -368,19 +412,19 @@ export function AppHeader({
             <input
               type="search"
               className="topbar-search-input"
-              placeholder="Search ghats, lakes, or provisional sites..."
+              placeholder={t('nav.searchPlaceholder')}
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               onFocus={() => setIsSearchFocused(true)}
               onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
-              aria-label="Search ghats or immersion sites"
+              aria-label={t('nav.searchAria')}
             />
             {searchQuery && (
               <button
                 type="button"
                 className="btn-clear-search"
                 onClick={() => setSearchQuery('')}
-                aria-label="Clear search"
+                aria-label={t('nav.clearSearch')}
               >
                 ✕
               </button>
@@ -388,49 +432,79 @@ export function AppHeader({
           </div>
 
           {/* Autocomplete Dropdown */}
-          {isSearchFocused && searchResults.length > 0 && (
+          {isSearchFocused && (
             <ul className="search-dropdown" role="listbox" aria-label="Search suggestions">
-              {searchResults.map(site => {
-                const stab = tierMap.get(site.name);
-                return (
-                  <li
-                    key={site.name}
-                    role="option"
-                    aria-selected="false"
-                    className="search-result-item"
-                    onMouseDown={() => handleSelectSite(site)}
-                  >
-                    <div className="result-name-row">
-                      <span className="result-name">{site.name}</span>
-                      {site.isMonitored ? (
-                        <span className={`result-tier-pill tier-${stab?.tier || 'b'}`}>
-                          Tier {stab?.tier || 'B'}
-                        </span>
-                      ) : (
-                        <span className="result-tier-pill tier-unmonitored">Provisional</span>
-                      )}
-                    </div>
-                    <span className="result-waterbody">{site.waterBody}</span>
-                  </li>
-                );
-              })}
+              {searchResults.length > 0 ? (
+                searchResults.map(site => {
+                  const stab = tierMap.get(site.name);
+                  return (
+                    <li
+                      key={site.name}
+                      role="option"
+                      aria-selected="false"
+                      className="search-result-item"
+                      onMouseDown={() => handleSelectSite(site)}
+                    >
+                      <div className="result-name-row">
+                        <span className="result-name">{site.name}</span>
+                        {site.isMonitored ? (
+                          <span className={`result-tier-pill tier-${stab?.tier || 'b'}`}>
+                            Tier {stab?.tier || 'B'}
+                          </span>
+                        ) : (
+                          <span className="result-tier-pill tier-unmonitored">{t('hero.legendUnmonitored')}</span>
+                        )}
+                      </div>
+                      <span className="result-waterbody">{site.waterBody}</span>
+                    </li>
+                  );
+                })
+              ) : (
+                <li className="search-no-match">{t('nav.noMatch')}</li>
+              )}
             </ul>
           )}
         </div>
 
         <div className="topbar-actions">
+          {/* Language Switcher */}
+          <div className="lang-switcher-group">
+            <div className="lang-segmented-control" role="group" aria-label={t('nav.langAria')}>
+              <button
+                type="button"
+                className={`lang-btn ${lang === 'en' ? 'active' : ''}`}
+                aria-pressed={lang === 'en'}
+                onClick={() => setLang('en')}
+              >
+                EN
+              </button>
+              <button
+                type="button"
+                className={`lang-btn ${lang === 'hi' ? 'active' : ''}`}
+                aria-pressed={lang === 'hi'}
+                onClick={() => setLang('hi')}
+              >
+                हिं
+              </button>
+            </div>
+            {lang === 'hi' && (
+              <span className="hindi-draft-pill">{t('lang.hindiDraftNotice')}</span>
+            )}
+          </div>
+
+          {/* Account Menu or Login Trigger */}
           {user ? (
             <div className="officer-account-group">
-              <a href="#/officer" className="btn-officer-area" aria-label="Go to Officer Workspace">
-                🛡️ Officer Area
+              <a href="#/officer" className="btn-officer-area" aria-label={t('nav.officerArea')}>
+                {t('nav.officerArea')}
               </a>
               <button
                 type="button"
                 className="btn-officer-logout"
                 onClick={logout}
-                aria-label="Log out of officer area"
+                aria-label={t('nav.signOut')}
               >
-                Sign Out
+                {t('nav.signOut')}
               </button>
             </div>
           ) : (
@@ -447,21 +521,33 @@ export function AppHeader({
               aria-haspopup="dialog"
               aria-expanded={isLoginOpen}
             >
-              🔒 Officer Login
+              {t('nav.login')}
             </button>
           )}
         </div>
       </div>
 
-      {/* 2 & 3. HERO CONTENT GRID: MAP + EXECUTIVE OVERVIEW */}
+      {/* 2 & 3. HERO CONTENT GRID: BIGGER MAP (65%) + EXECUTIVE OVERVIEW (35%) */}
       <div className="hero-main-grid">
-        {/* PART 2: MAP OF BHOPAL */}
-        <section className="hero-map-panel" aria-labelledby="map-heading">
+        {/* PART 2: BIGGER MAP OF BHOPAL */}
+        <section className={`hero-map-panel ${isFullscreen ? 'fullscreen-active' : ''}`} aria-labelledby="map-heading">
           <div className="map-panel-header">
-            <h2 id="map-heading" className="panel-title">
-              Bhopal Visarjan Monitoring Map
-            </h2>
-            <span className="map-live-tag">Interactive · 7 Monitored Ghats</span>
+            <div className="map-title-row">
+              <h2 id="map-heading" className="panel-title">
+                {t('hero.mapHeading')}
+              </h2>
+              <span className="map-live-tag">{t('hero.mapLiveTag')}</span>
+            </div>
+
+            <button
+              type="button"
+              className="btn-fullscreen-map"
+              onClick={() => setIsFullscreen(!isFullscreen)}
+              aria-pressed={isFullscreen}
+              aria-label={isFullscreen ? t('hero.exitFullscreen') : t('hero.fullscreenMap')}
+            >
+              {isFullscreen ? `✕ ${t('hero.exitFullscreen')}` : `⛶ ${t('hero.fullscreenMap')}`}
+            </button>
           </div>
 
           <div
@@ -469,68 +555,86 @@ export function AppHeader({
             className="bhopal-leaflet-container"
             tabIndex={0}
             role="region"
-            aria-label="Interactive Leaflet Map of Bhopal showing monitored ghats and provisional immersion sites"
+            aria-label="Interactive Leaflet Map of Bhopal"
           />
 
-          <div className="map-legend-row" role="region" aria-label="Map color legend">
-            <span className="legend-title">Pins:</span>
-            <div className="legend-chip chip-a">
-              <span className="pin-sample pin-sample-a">A</span>
-              <span>Tier A (Act First)</span>
+          {isFullscreen && (
+            <div className="map-legend-row" role="region" aria-label="Map color legend">
+              <span className="legend-title">{t('hero.mapLegend')}</span>
+              <div className="legend-chip chip-a">
+                <span className="pin-sample pin-sample-a">A</span>
+                <span>{t('hero.legendTierA')}</span>
+              </div>
+              <div className="legend-chip chip-b">
+                <span className="pin-sample pin-sample-b">B</span>
+                <span>{t('hero.legendTierB')}</span>
+              </div>
+              <div className="legend-chip chip-c">
+                <span className="pin-sample pin-sample-c">C</span>
+                <span>{t('hero.legendTierC')}</span>
+              </div>
+              <div className="legend-chip chip-u">
+                <span className="pin-sample pin-sample-u">?</span>
+                <span>{t('hero.legendUnmonitored')}</span>
+              </div>
             </div>
-            <div className="legend-chip chip-b">
-              <span className="pin-sample pin-sample-b">B</span>
-              <span>Tier B (Close Group)</span>
-            </div>
-            <div className="legend-chip chip-c">
-              <span className="pin-sample pin-sample-c">C</span>
-              <span>Tier C (Lowest Concern)</span>
-            </div>
-            <div className="legend-chip chip-u">
-              <span className="pin-sample pin-sample-u">?</span>
-              <span>Provisional Unmonitored</span>
-            </div>
-          </div>
+          )}
         </section>
 
         {/* PART 3: HERO EXECUTIVE CONTEXT & METRICS */}
         <section className="hero-context-panel" aria-labelledby="hero-title">
           <div className="badge-row">
-            <span className="gov-tag">Decision Support System · Bhopal Municipal Corporation</span>
-            <span className="date-tag">Durga Visarjan: 20 October 2026</span>
+            <span className="gov-tag">{t('hero.govTag')}</span>
+            <span className="date-tag">{t('hero.targetDate')}</span>
           </div>
 
-          <h1 id="hero-title">Visarjan Ghat Watch · Bhopal</h1>
+          <h1 id="hero-title">{t('hero.title')}</h1>
 
           <p className="subtitle">
-            Historical MPPCB water quality analysis (2023–2025) across {ghatsCount} monitored ghats and {unmonitoredCount} unmonitored sites.
-            Benchmarked against CPCB Class B (outdoor bathing).
+            {t('hero.subtitle', { ghatsCount, unmonitoredCount })}
           </p>
 
           <div className="purpose-box">
-            <p>
-              <strong>What this tool does:</strong> Evaluates multi-year water quality trajectories before, during, and after idol immersion.
-              It flags baseline hypoxia, immersion shocks, delayed recovery, and coverage blind spots to assist municipal officers
-              in prioritizing aeration, cleanup, and baseline testing. <em>Points to official evidence; the officer decides.</em>
-            </p>
+            <p>{t('hero.purpose')}</p>
           </div>
 
           <div className="stat-pills" role="region" aria-label="Dataset Summary">
             <div className="stat-pill">
               <span className="stat-val">{ghatsCount}</span>
-              <span className="stat-lbl">Monitored Ghats</span>
+              <span className="stat-lbl">{t('hero.statMonitored')}</span>
             </div>
             <div className="stat-pill">
               <span className="stat-val">{unmonitoredCount}</span>
-              <span className="stat-lbl">Unmonitored Sites</span>
+              <span className="stat-lbl">{t('hero.statUnmonitored')}</span>
             </div>
             <div className="stat-pill">
               <span className="stat-val">{totalRows}</span>
-              <span className="stat-lbl">MPPCB Records</span>
+              <span className="stat-lbl">{t('hero.statRecords')}</span>
             </div>
             <div className="stat-pill">
               <span className="stat-val">CPCB Class B</span>
-              <span className="stat-lbl">Bathing Benchmark</span>
+              <span className="stat-lbl">{t('hero.statBenchmark')}</span>
+            </div>
+          </div>
+
+          {/* Legend in the Info Panel on the right */}
+          <div className="map-legend-row hero-info-legend" role="region" aria-label="Map color legend">
+            <span className="legend-title">{t('hero.mapLegend')}</span>
+            <div className="legend-chip chip-a">
+              <span className="pin-sample pin-sample-a">A</span>
+              <span>{t('hero.legendTierA')}</span>
+            </div>
+            <div className="legend-chip chip-b">
+              <span className="pin-sample pin-sample-b">B</span>
+              <span>{t('hero.legendTierB')}</span>
+            </div>
+            <div className="legend-chip chip-c">
+              <span className="pin-sample pin-sample-c">C</span>
+              <span>{t('hero.legendTierC')}</span>
+            </div>
+            <div className="legend-chip chip-u">
+              <span className="pin-sample pin-sample-u">?</span>
+              <span>{t('hero.legendUnmonitored')}</span>
             </div>
           </div>
         </section>
@@ -549,13 +653,13 @@ export function AppHeader({
           >
             <div className="modal-header">
               <h2 id="login-dialog-title" className="modal-title">
-                BMC Officer Portal Login
+                {t('officer.loginTitle')}
               </h2>
               <button
                 type="button"
                 className="btn-modal-close"
                 onClick={closeModal}
-                aria-label="Close modal dialog"
+                aria-label={t('officer.cancelBtn')}
               >
                 ✕
               </button>
@@ -563,8 +667,8 @@ export function AppHeader({
 
             <div className="modal-body">
               <div className="modal-notice-banner" role="status">
-                ℹ️ <strong>Demo mode: prototype login, not real authentication.</strong>
-                <div className="demo-credentials-hint">Demo credentials: <code>test@gmail.com</code> / <code>123</code></div>
+                ℹ️ <strong>{t('officer.demoNotice')}</strong>
+                <div className="demo-credentials-hint">{t('officer.demoHint')}</div>
               </div>
 
               {loginError && (
@@ -576,7 +680,7 @@ export function AppHeader({
               <form onSubmit={handleLoginSubmit} className="login-modal-form">
                 <div className="form-field">
                   <label htmlFor="officer-email" className="field-label">
-                    Official Email Address
+                    {t('officer.emailLabel')}
                   </label>
                   <input
                     ref={emailInputRef}
@@ -592,7 +696,7 @@ export function AppHeader({
 
                 <div className="form-field">
                   <label htmlFor="officer-password" className="field-label">
-                    Officer Password
+                    {t('officer.passwordLabel')}
                   </label>
                   <input
                     id="officer-password"
@@ -607,10 +711,10 @@ export function AppHeader({
 
                 <div className="modal-actions">
                   <button type="button" className="btn-secondary" onClick={closeModal}>
-                    Cancel
+                    {t('officer.cancelBtn')}
                   </button>
                   <button type="submit" className="btn-primary">
-                    Sign In (Demo)
+                    {t('officer.signInBtn')}
                   </button>
                 </div>
               </form>
