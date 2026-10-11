@@ -26,3 +26,4 @@ Core logic only (no UI yet). The UI imports `src/core/*`.
 - Not a health assessment. The tool points to readings; the officer decides.
 
 Data: `data/bhopal_ghats_2023_2025.csv` from the Impact Lab participant pack (MPPCB reports 2023 to 2025).
+# CLAUDE_HACKATHON
