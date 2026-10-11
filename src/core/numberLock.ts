@@ -109,14 +109,15 @@ export function validateNumberLock(
 ): { valid: boolean; unauthorizedNumbers: string[] } {
   const allowed = extractAllowedNumbers(facts);
 
-  // Regex to extract numbers (including decimal numbers)
-  const numberPattern = /\b\d+(?:\.\d+)?\b/g;
+  // Regex to extract numbers including comma-formatted integers (e.g. 1,524) and decimals
+  const numberPattern = /\b\d{1,3}(?:,\d{3})+(?:\.\d+)?\b|\b\d+(?:\.\d+)?\b/g;
   const matches = candidateText.match(numberPattern) ?? [];
 
   const unauthorized: string[] = [];
-  for (const token of matches) {
-    if (!allowed.has(token)) {
-      unauthorized.push(token);
+  for (const rawToken of matches) {
+    const token = rawToken.replace(/,/g, '');
+    if (!allowed.has(token) && !allowed.has(rawToken)) {
+      unauthorized.push(rawToken);
     }
   }
 

@@ -9,6 +9,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "verify": "tsx scripts/verify.ts",
+    "verify:ui": "tsx scripts/verify-ui.ts",
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.ui.json"
   },
   "dependencies": {
