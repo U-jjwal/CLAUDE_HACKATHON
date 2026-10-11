@@ -6,6 +6,7 @@ import { computeAllGhatCoverage } from '../core/coverage';
 import { computeTopActions } from '../core/actions';
 import { buildBriefFacts, INITIAL_BLIND_SPOTS } from '../core/facts';
 import { getRawCsv, parseAllReadings } from './data';
+import { AuthProvider } from './auth';
 
 import { AppHeader } from './components/AppHeader';
 import { Glossary } from './components/Glossary';
@@ -18,8 +19,9 @@ import { BlindSpotPanel } from './components/BlindSpotPanel';
 import { NewReadingForm } from './components/NewReadingForm';
 import { BilingualBrief } from './components/BilingualBrief';
 import { TrustAndLimits } from './components/TrustAndLimits';
+import { OfficerDashboard } from './components/officer/OfficerDashboard';
 
-export default function App() {
+function DashboardApp() {
   const [loadState, setLoadState] = useState<{
     status: 'loading' | 'ready' | 'error';
     readings: Reading[];
@@ -28,6 +30,14 @@ export default function App() {
 
   const [festival, setFestival] = useState<Festival | 'All'>('Durga');
   const [blindSpots, setBlindSpots] = useState<string[]>(INITIAL_BLIND_SPOTS);
+  const [uploadedReadings, setUploadedReadings] = useState<Reading[]>([]);
+  const [hash, setHash] = useState(() => (typeof window !== 'undefined' ? window.location.hash || '#/' : '#/'));
+
+  useEffect(() => {
+    const handleHash = () => setHash(window.location.hash || '#/');
+    window.addEventListener('hashchange', handleHash);
+    return () => window.removeEventListener('hashchange', handleHash);
+  }, []);
 
   const loadData = useCallback(() => {
     setLoadState({ status: 'loading', readings: [] });
@@ -61,10 +71,27 @@ export default function App() {
 
   const rs = loadState.status === 'ready' ? loadState.readings : null;
 
-  // Filtered view based on festival selection
-  const view = useMemo(
+  // Baseline bundled view & stability
+  const bundledView = useMemo(
     () => (rs ? (festival === 'All' ? rs : rs.filter(r => r.festival === festival)) : []),
     [rs, festival],
+  );
+
+  const bundledStability = useMemo(
+    () => (bundledView.length ? rankStability(bundledView, { B: 2000, seed: 7 }) : []),
+    [bundledView],
+  );
+
+  // Effective readings: merged in-memory session dataset
+  const effectiveReadings = useMemo(
+    () => (rs ? (uploadedReadings.length ? [...rs, ...uploadedReadings] : rs) : []),
+    [rs, uploadedReadings],
+  );
+
+  // Filtered view based on festival selection
+  const view = useMemo(
+    () => (effectiveReadings.length ? (festival === 'All' ? effectiveReadings : effectiveReadings.filter(r => r.festival === festival)) : []),
+    [effectiveReadings, festival],
   );
 
   // Match verify.ts exactly: B=2000, seed=7
@@ -74,36 +101,36 @@ export default function App() {
   );
 
   const ghats = useMemo(
-    () => (rs ? [...new Set(rs.map(r => r.ghat))].sort() : []),
-    [rs],
+    () => (effectiveReadings.length ? [...new Set(effectiveReadings.map(r => r.ghat))].sort() : []),
+    [effectiveReadings],
   );
 
   const coverages = useMemo(
-    () => (rs ? computeAllGhatCoverage(rs, festival) : {}),
-    [rs, festival],
+    () => (effectiveReadings.length ? computeAllGhatCoverage(effectiveReadings, festival) : {}),
+    [effectiveReadings, festival],
   );
 
   const profiles = useMemo(() => {
-    if (!rs || !stability.length) return {};
+    if (!effectiveReadings.length || !stability.length) return {};
     const map: Record<string, ReturnType<typeof profile>> = {};
     for (const s of stability) {
       map[s.ghat] = profile(view, s.ghat);
     }
     return map;
-  }, [rs, stability, view]);
+  }, [effectiveReadings, stability, view]);
 
-  const carryOverDO = useMemo(() => (rs ? carryOver(rs, 'Dissolved oxygen') : null), [rs]);
-  const carryOverBOD = useMemo(() => (rs ? carryOver(rs, 'BOD') : null), [rs]);
+  const carryOverDO = useMemo(() => (effectiveReadings.length ? carryOver(effectiveReadings, 'Dissolved oxygen') : null), [effectiveReadings]);
+  const carryOverBOD = useMemo(() => (effectiveReadings.length ? carryOver(effectiveReadings, 'BOD') : null), [effectiveReadings]);
 
   const topActions = useMemo(() => {
-    if (!rs || !stability.length) return [];
-    return computeTopActions(rs, stability, profiles, coverages, blindSpots);
-  }, [rs, stability, profiles, coverages, blindSpots]);
+    if (!effectiveReadings.length || !stability.length) return [];
+    return computeTopActions(effectiveReadings, stability, profiles, coverages, blindSpots);
+  }, [effectiveReadings, stability, profiles, coverages, blindSpots]);
 
   const briefFacts = useMemo(() => {
-    if (!rs) return null;
-    return buildBriefFacts(rs, festival, blindSpots);
-  }, [rs, festival, blindSpots]);
+    if (!effectiveReadings.length) return null;
+    return buildBriefFacts(effectiveReadings, festival, blindSpots);
+  }, [effectiveReadings, festival, blindSpots]);
 
   // Blind spots management with deduplication and trimming
   const handleAddBlindSpot = (newSite: string): { success: boolean; error?: string } => {
@@ -165,12 +192,43 @@ export default function App() {
     );
   }
 
+  // Hash Switch for Officer Dashboard (#/officer)
+  if (hash.startsWith('#/officer')) {
+    return (
+      <OfficerDashboard
+        bundledReadings={rs}
+        uploadedReadings={uploadedReadings}
+        bundledStability={bundledStability}
+        mergedStability={stability}
+        profiles={profiles}
+        coverages={coverages}
+        unmonitoredSites={blindSpots}
+        festival={festival}
+        onAddUploadedReadings={newReadings => setUploadedReadings(prev => [...prev, ...newReadings])}
+        onRemoveUploadedReadings={() => setUploadedReadings([])}
+      />
+    );
+  }
+
+  // Public Dashboard (#/)
   return (
     <div className="app-layout">
+      {uploadedReadings.length > 0 && (
+        <div className="officer-demo-banner" role="status">
+          <span className="banner-icon" aria-hidden="true">⚠️</span>
+          <span>
+            <strong>Active In-Memory Session:</strong> Showing analysis with {uploadedReadings.length} uploaded records.{' '}
+            <a href="#/officer" style={{ color: 'inherit', fontWeight: 700, textDecoration: 'underline' }}>
+              Manage in Officer Area →
+            </a>
+          </span>
+        </div>
+      )}
+
       <main className="wrap app-container">
         {/* 1. Hero Section (Top Bar with search & login, Bhopal Leaflet Map, Executive Overview) */}
         <AppHeader
-          totalRows={rs.length}
+          totalRows={effectiveReadings.length}
           ghatsCount={ghats.length}
           unmonitoredCount={blindSpots.length}
           stability={stability}
@@ -200,7 +258,7 @@ export default function App() {
         />
 
         {/* 6. Comprehensive Monitoring & Data Gap Grid */}
-        <DataGapGrid readings={rs} ghats={ghats} />
+        <DataGapGrid readings={effectiveReadings} ghats={ghats} />
 
         {/* 7. Provisional / Unmonitored Sites */}
         <BlindSpotPanel
@@ -211,7 +269,7 @@ export default function App() {
         />
 
         {/* 8. Check an entered reading (preview only, not saved) */}
-        <NewReadingForm ghats={ghats} readings={rs} />
+        <NewReadingForm ghats={ghats} readings={effectiveReadings} />
 
         {/* 9. Bilingual Brief (English, Hindi, WhatsApp copy, Print / PDF) */}
         <BilingualBrief facts={briefFacts} />
@@ -232,5 +290,13 @@ export default function App() {
         </div>
       </footer>
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <DashboardApp />
+    </AuthProvider>
   );
 }

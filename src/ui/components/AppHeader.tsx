@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useMemo } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { useAuth } from '../auth';
 import type { Stability, Tier } from '../../core/score';
 import type { GhatProfile } from '../../core/insights';
 
@@ -92,6 +93,12 @@ export function AppHeader({
   // 1. Search state
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchFocused, setIsSearchFocused] = useState(false);
+
+  // Auth context
+  const { user, login, logout } = useAuth();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loginError, setLoginError] = useState<string | null>(null);
 
   // 2. Login modal state & accessibility refs
   const [isLoginOpen, setIsLoginOpen] = useState(false);
@@ -328,6 +335,7 @@ export function AppHeader({
 
   const closeModal = () => {
     setIsLoginOpen(false);
+    setLoginError(null);
     setTimeout(() => {
       loginBtnRef.current?.focus();
     }, 0);
@@ -335,9 +343,14 @@ export function AppHeader({
 
   const handleLoginSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Do NOT pretend to authenticate; just close the modal with the notice.
-    // No fake sessions, no localStorage auth.
-    closeModal();
+    setLoginError(null);
+    const success = login(email, password);
+    if (success) {
+      closeModal();
+      window.location.hash = '#/officer';
+    } else {
+      setLoginError('Invalid email or password');
+    }
   };
 
   return (
@@ -406,16 +419,37 @@ export function AppHeader({
         </div>
 
         <div className="topbar-actions">
-          <button
-            type="button"
-            ref={loginBtnRef}
-            className="btn-login-trigger"
-            onClick={() => setIsLoginOpen(true)}
-            aria-haspopup="dialog"
-            aria-expanded={isLoginOpen}
-          >
-            🔒 Officer Login
-          </button>
+          {user ? (
+            <div className="officer-account-group">
+              <a href="#/officer" className="btn-officer-area" aria-label="Go to Officer Workspace">
+                🛡️ Officer Area
+              </a>
+              <button
+                type="button"
+                className="btn-officer-logout"
+                onClick={logout}
+                aria-label="Log out of officer area"
+              >
+                Sign Out
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              ref={loginBtnRef}
+              className="btn-login-trigger"
+              onClick={() => {
+                setEmail('');
+                setPassword('');
+                setLoginError(null);
+                setIsLoginOpen(true);
+              }}
+              aria-haspopup="dialog"
+              aria-expanded={isLoginOpen}
+            >
+              🔒 Officer Login
+            </button>
+          )}
         </div>
       </div>
 
@@ -529,8 +563,15 @@ export function AppHeader({
 
             <div className="modal-body">
               <div className="modal-notice-banner" role="status">
-                ⚠️ <strong>Officer login is a planned feature and is not active in this prototype.</strong>
+                ℹ️ <strong>Demo mode: prototype login, not real authentication.</strong>
+                <div className="demo-credentials-hint">Demo credentials: <code>test@gmail.com</code> / <code>123</code></div>
               </div>
+
+              {loginError && (
+                <div className="form-error-banner" role="alert" aria-live="assertive">
+                  ❌ {loginError}
+                </div>
+              )}
 
               <form onSubmit={handleLoginSubmit} className="login-modal-form">
                 <div className="form-field">
@@ -542,7 +583,9 @@ export function AppHeader({
                     id="officer-email"
                     type="email"
                     className="form-input"
-                    placeholder="officer@bhopalcorp.nic.in"
+                    value={email}
+                    onChange={e => setEmail(e.target.value)}
+                    placeholder="test@gmail.com"
                     required
                   />
                 </div>
@@ -555,7 +598,9 @@ export function AppHeader({
                     id="officer-password"
                     type="password"
                     className="form-input"
-                    placeholder="••••••••••••"
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                    placeholder="123"
                     required
                   />
                 </div>
@@ -565,7 +610,7 @@ export function AppHeader({
                     Cancel
                   </button>
                   <button type="submit" className="btn-primary">
-                    Sign In (Prototype Notice)
+                    Sign In (Demo)
                   </button>
                 </div>
               </form>
