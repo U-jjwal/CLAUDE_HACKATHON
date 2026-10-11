@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from 'react';
-import { parseReadings, num, cite, REPORT_FILE } from '../core/clean';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { num, cite, REPORT_FILE } from '../core/clean';
 import { rankStability } from '../core/score';
 import { profile, carryOver, assessReading } from '../core/insights';
 import { exceeds } from '../core/limits';
 import type { Reading } from '../core/types';
+import { getRawCsv, parseAllReadings } from './data';
 
 const TAGS: Record<string, string> = {
   recurring_baseline: 'Low oxygen even before idols arrive (2+ events)',
@@ -17,19 +18,71 @@ const PARAMS = ['Dissolved oxygen', 'BOD', 'pH'];
 const PH_ORDER = { pre: 0, during: 1, after: 2 } as const;
 
 export default function App() {
-  const [rs, setRs] = useState<Reading[] | null>(null);
+  const [loadState, setLoadState] = useState<{
+    status: 'loading' | 'ready' | 'error';
+    readings: Reading[];
+    error?: string;
+  }>({ status: 'loading', readings: [] });
   const [fest, setFest] = useState<'Durga' | 'Ganesh' | 'All'>('Durga');
   const [open, setOpen] = useState<string | null>(null);
   const [sites, setSites] = useState(['Arch Bridge ghat', 'Barkatullah University campus ghat (new)', 'Sanjeev Nagar ghat (new)', 'Neelbagh ghat (new)']);
   const [site, setSite] = useState('');
   const [ar, setAr] = useState({ ghat: '', param: 'Dissolved oxygen', val: '' });
 
-  useEffect(() => {
-    fetch(`${import.meta.env.BASE_URL}bhopal_ghats_2023_2025.csv`).then(r => r.text()).then(t => setRs(parseReadings(t)));
+  const loadData = useCallback(() => {
+    setLoadState({ status: 'loading', readings: [] });
+    try {
+      const raw = getRawCsv();
+      if (!raw || !raw.trim()) {
+        throw new Error('CSV file is empty');
+      }
+      const data = parseAllReadings(raw);
+      if (!data || data.length === 0) {
+        setLoadState({
+          status: 'error',
+          readings: [],
+          error: '0 rows parsed from water quality dataset',
+        });
+        return;
+      }
+      setLoadState({ status: 'ready', readings: data });
+    } catch (err) {
+      setLoadState({
+        status: 'error',
+        readings: [],
+        error: err instanceof Error ? err.message : 'Failed to parse CSV dataset',
+      });
+    }
   }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  const rs = loadState.status === 'ready' ? loadState.readings : null;
+
   const view = useMemo(() => (rs ? (fest === 'All' ? rs : rs.filter(r => r.festival === fest)) : []), [rs, fest]);
   const stab = useMemo(() => (view.length ? rankStability(view, { B: 1000 }) : []), [view]);
-  if (!rs) return <div className="wrap">Loading readings...</div>;
+
+  if (loadState.status === 'loading') {
+    return (
+      <div className="wrap" role="status" aria-live="polite">
+        <p>Loading historical readings...</p>
+      </div>
+    );
+  }
+
+  if (loadState.status === 'error' || !rs) {
+    return (
+      <div className="wrap error-box" role="alert" aria-live="assertive">
+        <h2>Failed to load water quality data</h2>
+        <p className="mute">{loadState.error ?? 'An unexpected error occurred while parsing the dataset.'}</p>
+        <button onClick={loadData} style={{ marginTop: '12px', padding: '8px 16px', cursor: 'pointer' }}>
+          Retry
+        </button>
+      </div>
+    );
+  }
 
   const events = [...new Set(rs.map(r => `${r.year}-${r.festival}`))].sort();
   const cDO = carryOver(rs, 'Dissolved oxygen'), cBOD = carryOver(rs, 'BOD');
