@@ -168,11 +168,14 @@ export default function App() {
   return (
     <div className="app-layout">
       <main className="wrap app-container">
-        {/* 1. Header (name, Bhopal, 20 Oct 2026, what this does, coverage summary) */}
+        {/* 1. Hero Section (Top Bar with search & login, Bhopal Leaflet Map, Executive Overview) */}
         <AppHeader
           totalRows={rs.length}
           ghatsCount={ghats.length}
           unmonitoredCount={blindSpots.length}
+          stability={stability}
+          profiles={profiles}
+          blindSpots={blindSpots}
         />
 
         {/* Compact always-visible glossary */}
