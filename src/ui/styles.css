@@ -1,0 +1,14 @@
+:root{--bg:#f6f7f9;--card:#fff;--ink:#16202b;--mute:#5d6b7a;--line:#dde3ea;--red:#c0392b;--amb:#d68910;--grn:#2e8b57}
+*{box-sizing:border-box}body{margin:0;font:15px/1.5 system-ui,"Noto Sans Devanagari",sans-serif;background:var(--bg);color:var(--ink)}
+.wrap{max-width:1000px;margin:0 auto;padding:16px}h1{margin:0;font-size:22px}h2{font-size:17px;margin:22px 0 8px}
+.sub{color:var(--mute);margin:2px 0 12px}.note{background:#fff7e0;border:1px solid #f0d98a;border-radius:8px;padding:10px 12px;margin:10px 0}
+.seg button{border:1px solid var(--line);background:#fff;padding:6px 12px;cursor:pointer}.seg button.on{background:var(--ink);color:#fff}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin:10px 0}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.grow{flex:1}.badge{color:#fff;border-radius:6px;padding:2px 8px;font-weight:600;font-size:13px}
+.A{background:var(--red)}.B{background:var(--amb)}.C{background:var(--grn)}
+.tag{background:#eef2f6;border-radius:12px;padding:2px 9px;font-size:12px;margin:2px 4px 2px 0;display:inline-block}
+.mute{color:var(--mute);font-size:13px}button.link{background:none;border:0;color:#1a5fb4;cursor:pointer;padding:0;font:inherit}
+table{border-collapse:collapse;width:100%;font-size:13px}th,td{border-bottom:1px solid var(--line);padding:4px 6px;text-align:left}
+.scroll{overflow-x:auto}.grid{display:grid;gap:2px;font-size:11px}.cell{height:18px;border-radius:3px}
+.ok{background:var(--grn)}.bad{background:var(--red)}.none{background:repeating-linear-gradient(45deg,#d5dae0,#d5dae0 4px,#eef0f3 4px,#eef0f3 8px)}
+input,select{padding:6px;border:1px solid var(--line);border-radius:6px;font:inherit}
